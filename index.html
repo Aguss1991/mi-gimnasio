@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#172033">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Mi Gimnasio · PPL ×2</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--ink:#172033;--violet:#7458e8;--paper:#fffdf8;--line:#e5dfd3;--muted:#7b8492;--green:#25845d;--red:#bd5555;--gold:#c78a27}
+body{margin:0;background:radial-gradient(circle at top,#eef0f7,#dddcd6 70%);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}
+.app{max-width:720px;margin:auto;min-height:100vh;background:var(--paper);box-shadow:0 0 40px #17203318}
+header{position:sticky;top:0;z-index:20;background:#fffdf8f2;backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.wrap{padding:14px 16px}
+.paper{background-color:var(--paper);background-image:linear-gradient(#17203308 1px,transparent 1px);background-size:100% 28px}
+.card{border:1px solid var(--line);border-radius:20px;box-shadow:0 7px 22px #1720330d}
+.tabs{display:flex;gap:7px;overflow:auto;padding:8px 16px 12px}.tabs button{white-space:nowrap}
+.pill{border:1px solid var(--line);background:white;border-radius:12px;padding:9px 12px;font-size:12px;font-weight:900}
+.pill.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.bottom{position:sticky;bottom:0;z-index:25;background:#fffdf8f5;backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.navbtn{border:0;background:transparent;border-radius:13px;padding:9px 4px;font-size:10px;font-weight:900;color:var(--muted)}.navbtn.active{background:#f0edff;color:var(--violet)}
+.num{height:44px;width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:center;font-weight:900}
+.num:focus{outline:none;border-color:var(--violet);box-shadow:0 0 0 3px #7458e81c}
+.cta{width:100%;height:54px;border:0;border-radius:17px;background:var(--ink);color:white;font-weight:950}
+.secondary{height:43px;border:1px solid var(--line);background:#fff;border-radius:13px;font-weight:900}
+.badge{font-size:10px;letter-spacing:.15em;text-transform:uppercase;font-weight:950;color:var(--violet)}
+.prevbox{background:#f5f3ee;border:1px solid #ddd7cb;border-radius:15px;padding:10px}
+.modal{position:fixed;inset:0;z-index:60;background:#11182780;backdrop-filter:blur(5px);display:flex;align-items:flex-end}
+.sheet{width:100%;max-width:720px;margin:auto 0 0;background:var(--paper);border-radius:25px 25px 0 0;padding:20px;max-height:92vh;overflow:auto}
+@media(min-width:721px){.modal{align-items:center}.sheet{border-radius:25px;max-width:600px}}
+.hidden{display:none!important}.toast{position:fixed;left:16px;right:16px;bottom:85px;z-index:80;background:var(--ink);color:white;padding:13px 15px;border-radius:14px;text-align:center;font-weight:900;font-size:13px}
+.progress{height:8px;background:#e9e4d9;border-radius:99px;overflow:hidden}.progress>i{display:block;height:100%;background:var(--violet);border-radius:99px}
+.small{font-size:11px;color:var(--muted)}.green{color:var(--green)}.red{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<div class="wrap">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div><div class="small" style="letter-spacing:.18em;text-transform:uppercase;font-weight:900">LIBRETA · PPL ×2</div><div style="font-size:25px;font-weight:950">Mi Gimnasio 🏋️</div></div>
+<button id="more" class="pill">☰</button>
+</div>
+<div id="dateRow" style="display:flex;gap:7px;margin-top:11px">
+<input id="date" type="date" class="num" style="text-align:left;padding:0 12px;flex:1">
+</div>
+</div>
+<div id="tabs" class="tabs"></div>
+</header>
+
+<main id="screen" class="wrap paper"></main>
+
+<nav class="bottom">
+<button class="navbtn active" data-page="training">🏋️<br>Entrenamiento</button>
+<button class="navbtn" data-page="history">📚<br>Historial</button>
+<button class="navbtn" data-page="plan">⚙️<br>Modificar plan</button>
+</nav>
+</div>
+
+<div id="modal" class="modal hidden"><div class="sheet" id="sheet"></div></div>
+<div id="toast" class="toast hidden"></div>
+
+<script>
+const DEFAULT=[
+{id:1,n:"Push A",s:"Pecho · tríceps · hombro",e:[["Press plano mancuernas",3,"6–10","2→1"],["Press superior multipower",3,"8–12","2→1"],["Fondos pecho",3,"8–12","2→1"],["Extensión tríceps",3,"10–15","1–2"],["Press tríceps multipower",2,"8–12","1–2"],["Elevaciones laterales polea",3,"12–20","1–2"],["Elevaciones laterales banco",3,"12–20","1–2"]]},
+{id:2,n:"Pull A",s:"Espalda · bíceps",e:[["Dominadas libres",3,"6–10","2→1"],["Remo máquina unilateral",3,"8–12","1–2"],["Face pull polea",3,"12–20","1–2"],["Curl barra Z banco",3,"8–12","1–2"],["Martillo cuerda",3,"10–15","1–2"],["Lumbares lastre",3,"10–15","1–2"]]},
+{id:3,n:"Legs A",s:"Piernas",e:[["Hack squat",3,"6–10","2→1"],["Peso muerto rumano máquina",3,"8–12","2→1"],["Extensiones (3 puntos)",3,"10–15","1–2"],["Abductor máquina",3,"12–20","1–2"],["Femoral sentado",3,"8–12","1–2"],["Gemelo parado",3,"8–15","1–2"]]},
+{id:4,n:"Push B",s:"Pecho · tríceps · hombro",e:[["Press plano multipower",3,"6–10","2→1"],["Press superior máquina",3,"8–12","2→1"],["Fondos tríceps",2,"8–12","1–2"],["Contractora",2,"10–15","1–2"],["Extensión tríceps cuerda una mano",3,"10–15","1–2"],["Elevaciones laterales poleas cruzadas",3,"12–20","1–2"],["Elevaciones laterales parado",3,"12–20","1–2"]]},
+{id:5,n:"Pull B",s:"Espalda · bíceps",e:[["Dominadas lastradas",3,"6–10","2→1"],["Remo Gironda",3,"8–12","1–2"],["Face pull polea unilateral",3,"12–20","1–2"],["Curl barra Z banco",3,"8–12","1–2"],["Martillo cuerda",3,"10–15","1–2"],["Lumbares libres",3,"10–15","1–2"]]},
+{id:6,n:"Legs B",s:"Piernas",e:[["Sentadillas",3,"6–10","2→1"],["Peso muerto rumano barra",3,"6–10","2→1"],["Extensiones (3 puntos)",3,"10–15","1–2"],["Abductor máquina",3,"12–20","1–2"],["Femoral sentado",3,"8–12","1–2"],["Gemelo parado",3,"8–15","1–2"]]}
+];
+const KEY="mi_gimnasio_v4";
+let db=JSON.parse(localStorage.getItem(KEY)||'{"plan":null,"sessions":{}}');
+if(!db.plan)db.plan=DEFAULT;
+let day=1,date=today(),page="training",activeSession=null;
+function today(){let d=new Date();d=new Date(d-d.getTimezoneOffset()*60000);return d.toISOString().slice(0,10)}
+function esc(x){return String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function ek(n){return n.replace(/[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ]+/g,"_")}
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function sk(){return date+"__"+day}
+function getSession(create=false){if(!db.sessions[sk()]&&create)db.sessions[sk()]={date,day,status:"open",startedAt:new Date().toISOString(),ex:{}};return db.sessions[sk()]}
+function exData(ex,s){let d=s?.ex?.[ek(ex[0])];if(!d)d={sets:Array.from({length:ex[1]},()=>({weight:"",reps:"",rir:""})),comment:""};while(d.sets.length<ex[1])d.sets.push({weight:"",reps:"",rir:""});return d}
+function prevFor(name){return Object.values(db.sessions).filter(s=>s.day===day&&s.date<date&&s.ex?.[ek(name)]).sort((a,b)=>b.date.localeCompare(a.date))[0]}
+function volume(s){let r=db.plan.find(x=>x.id===s?.day),v=0;(r?.e||[]).forEach(e=>(s.ex?.[ek(e[0])]?.sets||[]).forEach(x=>v+=(+x.weight||0)*(+x.reps||0)));return v}
+function activeOpen(){return Object.values(db.sessions).find(s=>s.status==="open")}
+function renderTabs(){let r=db.plan.find(x=>x.id===day);document.getElementById("tabs").innerHTML=db.plan.map(x=>`<button class="pill ${x.id===day?"active":""}" data-day="${x.id}">D${x.id} · ${esc(x.n)}</button>`).join("");document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=+b.dataset.day;page="training";render()})}
+function startTraining(){if(getSession())return;getSession(true);save();activeSession=true;toast("🔥 ¡A darle! Entrenamiento iniciado.");render()}
+function finishTraining(){let s=getSession();if(!s)return;confirm2("¿Has terminado de verdad? 💪","Sí, he terminado","Seguir entrenando").then(ok=>{if(ok){s.status="finished";s.finishedAt=new Date().toISOString();save();toast("🏆 Sesión guardada. ¡Buen trabajo!");render()}})}
+function confirm2(q,yes,no){return new Promise(resolve=>{open(`<div class="badge">CONFIRMACIÓN</div><h2 style="font-size:24px;margin:7px 0 12px">${q}</h2><p class="small">No pasa nada si solo vas a volver en un rato.</p><div style="display:grid;gap:9px;margin-top:18px"><button id="cy" class="cta">${yes}</button><button id="cn" class="secondary">${no}</button></div>`);cy.onclick=()=>{close();resolve(true)};cn.onclick=()=>{close();resolve(false)}})}
+function renderTraining(){
+let r=db.plan.find(x=>x.id===day),s=getSession(),open=s?.status==="open",finished=s?.status==="finished";
+let html=`<section class="card" style="padding:17px;margin-bottom:14px">
+<div class="badge">DÍA ${day} · ${esc(r.n)}</div><h1 style="font-size:24px;margin:5px 0">${esc(r.s)}</h1>
+<div class="small">${open?"🔥 Entrenamiento en curso":finished?"🏁 Sesión finalizada":"Tu próxima batalla empieza aquí."}</div>
+<div class="progress" style="margin-top:13px"><i id="pbar" style="width:0%"></i></div>
+<div id="summary" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"></div>
+${!s?`<button id="start" class="cta" style="margin-top:13px">▶️ VAMOS A ENTRENAR</button>`:""}
+${finished?`<button id="resume" class="secondary" style="width:100%;margin-top:10px">🔄 Volver a esta sesión</button>`:""}
+${open?`<button id="finish" class="cta" style="margin-top:13px">🏁 HE TERMINADO LA SESIÓN</button>`:""}
+</section>`;
+if(!s)html+=`<div class="card" style="padding:17px;text-align:center"><div style="font-size:35px">💪</div><b>Cuando estés listo, pulsa «Vamos a entrenar»</b><div class="small" style="margin-top:5px">Cerrar la app no crea otra sesión: podrás volver a esta.</div></div>`;
+else html+=r.e.map((e,i)=>exercise(e,i,s)).join("");
+document.getElementById("screen").innerHTML=html;
+document.getElementById("start")?.addEventListener("click",startTraining);
+document.getElementById("finish")?.addEventListener("click",finishTraining);
+document.getElementById("resume")?.addEventListener("click",()=>{s.status="open";save();render()});
+if(s){bindInputs(s);updateSummary(s)}
+}
+function exercise(e,i,s){
+let d=exData(e,s),p=prevFor(e[0]);
+let prev=p?`<div class="prevbox"><div class="small" style="font-weight:950">ANTERIOR · ${p.date}</div><div style="display:grid;gap:5px;margin-top:6px">${p.ex[ek(e[0])].sets.map((x,j)=>`<div style="display:grid;grid-template-columns:25px 1fr 1fr 1fr;gap:5px;font-size:11px"><b>S${j+1}</b><span>${esc(x.weight||"—")} kg</span><span>${esc(x.reps||"—")} reps</span><span>RIR ${esc(x.rir||"—")}</span></div>`).join("")}</div></div>`:`<div class="prevbox small">Primera sesión de este ejercicio. 💥</div>`;
+return `<article class="card" style="padding:15px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:8px"><div><div class="badge">EJERCICIO ${i+1}</div><h2 style="font-size:17px;margin:4px 0">${esc(e[0])}</h2><div class="small">${e[1]} series · ${e[2]} reps · RIR ${e[3]}</div></div><button class="secondary rest" style="width:45px">⏱️</button></div>
+${prev}<div style="display:grid;grid-template-columns:28px 1fr 1fr 1fr;gap:7px;margin-top:10px"><div></div><b class="small" style="text-align:center">KG</b><b class="small" style="text-align:center">REPS</b><b class="small" style="text-align:center">RIR</b>
+${d.sets.map((x,j)=>`<b style="align-self:center;text-align:center">S${j+1}</b><input class="num" type="number" inputmode="decimal" step=".5" value="${esc(x.weight)}" placeholder="kg" data-e="${esc(e[0])}" data-i="${j}" data-f="weight"><input class="num" type="number" inputmode="numeric" value="${esc(x.reps)}" placeholder="${e[2]}" data-e="${esc(e[0])}" data-i="${j}" data-f="reps"><input class="num" type="number" inputmode="numeric" min="0" max="10" value="${esc(x.rir)}" placeholder="RIR" data-e="${esc(e[0])}" data-i="${j}" data-f="rir">`).join("")}</div>
+<textarea data-e="${esc(e[0])}" data-f="comment" placeholder="Sensaciones / técnica / notas…" style="width:100%;height:43px;margin-top:9px;border:1px solid var(--line);border-radius:12px;padding:11px;font:inherit;font-size:12px">${esc(d.comment)}</textarea></article>`}
+function bindInputs(s){document.querySelectorAll("[data-f]").forEach(inp=>inp.oninput=()=>{let r=db.plan.find(x=>x.id===day),e=r.e.find(x=>x[0]===inp.dataset.e),d=exData(e,s);if(inp.dataset.f==="comment")d.comment=inp.value;else d.sets[+inp.dataset.i][inp.dataset.f]=inp.value;s.ex[ek(e[0])]=d;save();updateSummary(s)});document.querySelectorAll(".rest").forEach(b=>b.onclick=timer)}
+function updateSummary(s){let r=db.plan.find(x=>x.id===day),done=r.e.filter(e=>{let d=s.ex?.[ek(e[0])];return d?.sets?.every(x=>x.weight!==""&&x.reps!=="")}).length;document.getElementById("pbar")&&(document.getElementById("pbar").style.width=done/r.e.length*100+"%");let pv=Object.values(db.sessions).filter(x=>x.day===day&&x.date<date).sort((a,b)=>b.date.localeCompare(a.date))[0],v=volume(s),q=pv?((v-volume(pv))/Math.max(volume(pv),1)*100):null;document.getElementById("summary").innerHTML=`<div class="prevbox"><div class="small">EJERCICIOS</div><b>${done}/${r.e.length}</b></div><div class="prevbox"><div class="small">VOLUMEN</div><b>${v.toLocaleString("es-ES",{maximumFractionDigits:0})} kg ${q===null?"":`<span class="${q>=0?"green":"red"}">${q>=0?"+":""}${q.toFixed(1)}%</span>`}</b></div>`}
+function renderHistory(){let a=Object.values(db.sessions).sort((x,y)=>y.date.localeCompare(x.date)||y.day-x.day);document.getElementById("screen").innerHTML=`<section class="card" style="padding:17px"><div class="badge">HISTORIAL</div><h1 style="font-size:25px;margin:5px 0">Tus batallas 🏆</h1><div class="small">Recupera o elimina cualquier sesión. La eliminación requiere dos confirmaciones.</div></section><div style="margin-top:12px">${a.length?a.map(s=>{let r=db.plan.find(x=>x.id===s.day);return `<article class="card" style="padding:14px;margin-bottom:9px"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>Día ${s.day} · ${esc(r?.n||"Sesión")}</b><div class="small">${s.date} · ${s.status==="finished"?"Finalizada":"En curso"} · ${volume(s).toLocaleString("es-ES")} kg</div></div><div style="display:flex;gap:6px"><button class="secondary reopen" data-k="${s.date}__${s.day}">↗</button><button class="secondary del" data-k="${s.date}__${s.day}">🗑️</button></div></div></article>`}).join(""):`<div class="card" style="padding:30px;text-align:center"><div style="font-size:35px">📓</div><b>Aún no hay entrenamientos.</b></div>`}</div>`;document.querySelectorAll(".reopen").forEach(b=>b.onclick=()=>{let s=db.sessions[b.dataset.k];date=s.date;day=s.day;page="training";render()});document.querySelectorAll(".del").forEach(b=>b.onclick=()=>deleteSession(b.dataset.k))}
+async function deleteSession(k){let s=db.sessions[k];let ok=await confirm2("¿Borrar esta sesión? 🗑️","Sí, borrar","Cancelar");if(!ok)return;let ok2=await confirm2(`Última oportunidad: ¿borrar ${s.date} definitivamente?`,"BORRAR DEFINITIVAMENTE","No, conservar");if(ok2){delete db.sessions[k];save();toast("Sesión eliminada.");renderHistory()}}
+function renderPlan(){let r=db.plan.find(x=>x.id===day);document.getElementById("screen").innerHTML=`<section class="card" style="padding:17px"><div class="badge">MODIFICAR PLAN</div><h1 style="font-size:25px;margin:5px 0">Construye tu rutina ⚙️</h1><div class="small">Puedes cambiar ejercicios, orden y número de series. Los cambios afectan a las próximas sesiones.</div></section><div style="margin-top:12px">${db.plan.map(d=>`<section class="card" style="padding:14px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b>Día ${d.id} · ${esc(d.n)}</b><button class="secondary editday" data-id="${d.id}">Editar</button></div></section>`).join("")}</div><button id="resetPlan" class="secondary" style="width:100%;margin-top:3px">↺ Restaurar plan original</button>`;document.querySelectorAll(".editday").forEach(b=>b.onclick=()=>editDay(+b.dataset.id));resetPlan.onclick=()=>{if(confirm("¿Restaurar el plan original? Esto no borra tus sesiones.")){db.plan=JSON.parse(JSON.stringify(DEFAULT));save();render()}}}
+function editDay(id){let d=db.plan.find(x=>x.id===id);open(`<div class="badge">EDITAR DÍA ${id}</div><h2 style="font-size:23px;margin:5px 0">${esc(d.n)}</h2><div class="small">Añade, elimina o modifica ejercicios y series.</div><div id="editList" style="margin-top:12px">${d.e.map((e,i)=>`<div class="card" style="padding:10px;margin-bottom:8px"><input class="num ename" value="${esc(e[0])}" style="text-align:left;padding:0 10px"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px"><input class="num erange" value="${esc(e[2])}" placeholder="reps"><input class="num esets" type="number" min="1" value="${e[1]}" placeholder="series"><input class="num erir" value="${esc(e[3])}" placeholder="RIR"></div><button class="secondary remove" data-i="${i}" style="width:100%;margin-top:6px">🗑️ Quitar ejercicio</button></div>`).join("")}</div><button id="addEx" class="secondary" style="width:100%">＋ Añadir ejercicio</button><button id="saveDay" class="cta" style="margin-top:9px">Guardar cambios</button>`);addEx.onclick=()=>{d.e.push(["Nuevo ejercicio",3,"8–12","1–2"]);editDay(id)};document.querySelectorAll(".remove").forEach(b=>b.onclick=()=>{d.e.splice(+b.dataset.i,1);editDay(id)});saveDay.onclick=()=>{let cards=[...document.querySelectorAll("#editList > div")];d.e=cards.map(c=>[c.querySelector(".ename").value.trim()||"Ejercicio",Math.max(1,+c.querySelector(".esets").value||1),c.querySelector(".erange").value.trim()||"8–12",c.querySelector(".erir").value.trim()||"1–2"]);save();close();toast("Plan actualizado ✓");render()})}
+function open(content){sheet.innerHTML=content;modal.classList.remove("hidden")}
+function close(){modal.classList.add("hidden")}
+function timer(){let n=90;open(`<div class="badge">DESCANSO</div><div id="clock" style="font-size:64px;text-align:center;font-weight:950;font-variant-numeric:tabular-nums;margin:10px 0">01:30</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px"><button class="secondary ts" data-n="60">60 s</button><button class="secondary ts" data-n="90">90 s</button><button class="secondary ts" data-n="120">120 s</button></div><button id="go" class="cta" style="margin-top:9px">▶ Empezar</button>`);document.querySelectorAll(".ts").forEach(b=>b.onclick=()=>{n=+b.dataset.n;show()});function show(){clock.textContent=String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0")}go.onclick=()=>{clearInterval(window.ti);window.ti=setInterval(()=>{n--;show();if(n<=0){clearInterval(window.ti);navigator.vibrate?.([250,100,250]);toast("⏰ ¡A por la siguiente serie!");}},1000)};show()}
+function toast(t){let x=document.getElementById("toast");x.textContent=t;x.classList.remove("hidden");setTimeout(()=>x.classList.add("hidden"),2200)}
+function render(){renderTabs();document.querySelectorAll(".navbtn").forEach(x=>x.classList.toggle("active",x.dataset.page===page));document.getElementById("date").value=date;if(page==="training")renderTraining();else if(page==="history")renderHistory();else renderPlan()}
+document.getElementById("date").onchange=e=>{date=e.target.value||today();render()};document.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});document.getElementById("more").onclick=()=>open(`<div class="badge">OPCIONES</div><h2 style="font-size:24px">Herramientas</h2><button id="export" class="secondary" style="width:100%;margin-top:10px">↓ Exportar copia de seguridad</button><label class="secondary" style="display:block;text-align:center;padding-top:12px;margin-top:8px">↑ Importar copia<input id="imp" type="file" accept=".json" style="display:none"></label><button id="closeM" class="secondary" style="width:100%;margin-top:8px">Cerrar</button>`);document.getElementById("closeM").onclick=close;document.getElementById("export").onclick=()=>{let b=new Blob([JSON.stringify(db,null,2)],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="mi-gimnasio-backup.json";a.click();URL.revokeObjectURL(u);toast("Copia exportada ✓")};document.getElementById("imp").onchange=e=>{let f=e.target.files[0];if(!f)return;let rr=new FileReader();rr.onload=()=>{try{let x=JSON.parse(rr.result);if(!x.sessions||!x.plan)throw 1;db=x;save();close();render();toast("Copia importada ✓")}catch{alert("Archivo no válido.")}};rr.readAsText(f)};
+window.addEventListener("beforeunload",e=>{let s=getSession();if(s?.status==="open"){e.preventDefault();e.returnValue=""}});
+render();
+</script>
+<script>
+if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost" || location.hostname==="127.0.0.1"))
+window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+</script>
+</body></html>
